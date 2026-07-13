@@ -1188,3 +1188,13 @@ app.mount(
     StaticFiles(directory=UPLOAD_DIR),
     name="uploads"
 )
+
+# Serve Frontend static site directly from Backend
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend"))
+if os.path.exists(FRONTEND_DIR):
+    app.mount(
+        "/",
+        StaticFiles(directory=FRONTEND_DIR, html=True),
+        name="frontend"
+    )
