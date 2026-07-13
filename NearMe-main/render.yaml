@@ -1,0 +1,38 @@
+services:
+  # ─────────────────────────────────────────────────────────
+  # 1. BACKEND  →  FastAPI Web Service
+  # ─────────────────────────────────────────────────────────
+  - type: web
+    name: nearme-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+
+    envVars:
+      # ⚠️  DO NOT hard-code secrets here.
+      # Set these in the Render dashboard → Environment tab.
+      - key: DATABASE_URL
+        sync: false          # prompt in dashboard
+      - key: SECRET_KEY
+        sync: false
+      - key: ALGORITHM
+        value: HS256
+      - key: UPLOAD_DIR
+        value: /tmp/uploads  # Render disk is ephemeral; use /tmp
+
+  # ─────────────────────────────────────────────────────────
+  # 2. FRONTEND  →  Static Site
+  # ─────────────────────────────────────────────────────────
+  - type: web
+    name: nearme-frontend
+    runtime: static
+    rootDir: frontend
+    staticPublishPath: .      # serve the frontend/ folder as-is
+    plan: free
+
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache

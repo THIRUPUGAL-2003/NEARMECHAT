@@ -1,0 +1,19 @@
+# Ignore environment secrets in any directory
+**/.env
+
+# Ignore python caches and virtual environments
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.venv/
+**/venv/
+
+# Ignore uploads and local temp files
+**/uploads/
+**/.DS_Store
+Thumps.db
+
+# Ignore node packages
+**/node_modules/
+package-lock.json

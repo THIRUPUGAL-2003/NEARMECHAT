@@ -1,0 +1,20 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# Environment secrets — NEVER commit these
+backend/.env
+frontend/.env
+
+# Uploads (ephemeral on Render)
+backend/uploads/
+
+# Node
+node_modules/
+package-lock.json

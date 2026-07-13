@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NearMe Ultra — Stories · Voice · Posts · Live</title>
+  <meta name="description"
+    content="NearMe Ultra: Real-time people nearby with stories, voice notes, photo posts, video sharing and AI chat.">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="ambient ambient-1"></div>
+  <div class="ambient ambient-2"></div>
+  <div class="ambient ambient-3"></div>
+
+  <!-- ═══ AUTH PAGE (LOGIN/SIGNUP) ═══ -->
+  <div id="page-auth" class="auth-container">
+    <div class="auth-left">
+      <div class="auth-form-box" id="auth-login-box">
+        <h2 class="auth-title">Welcome Back</h2>
+        <p class="auth-subtitle">Log in to discover people nearby.</p>
+        <div class="auth-field">
+          <label>Email</label>
+          <input type="email" id="login-email" placeholder="you@example.com">
+        </div>
+        <div class="auth-field">
+          <label>Password</label>
+          <input type="password" id="login-password" placeholder="••••••••">
+        </div>
+        <button class="auth-btn" onclick="handleLogin()">Log In</button>
+        <div class="auth-switch">Don't have an account? <span onclick="switchAuth('signup')">Sign Up</span></div>
+      </div>
+
+      <div class="auth-form-box" id="auth-signup-box" style="display: none;">
+        <h2 class="auth-title">Create Account</h2>
+        <p class="auth-subtitle">Join the neighborhood today.</p>
+        <div class="auth-field">
+          <label>Full Name</label>
+          <input type="text" id="signup-name" placeholder="e.g. John Doe">
+        </div>
+        <div class="auth-field">
+          <label>Email</label>
+          <input type="email" id="signup-email" placeholder="you@example.com">
+        </div>
+        <div class="auth-field">
+          <label>Password</label>
+          <input type="password" id="signup-password" placeholder="••••••••">
+        </div>
+        <div class="auth-field">
+          <label>Location (City)</label>
+          <input type="text" id="signup-location" placeholder="e.g. New York">
+        </div>
+        <div class="auth-field">
+          <label>Short Bio</label>
+          <input type="text" id="signup-bio" placeholder="e.g. Love coffee and hiking!">
+        </div>
+        <button class="auth-btn" onclick="handleSignup()">Sign Up</button>
+        <div class="auth-switch">Already have an account? <span onclick="switchAuth('login')">Log In</span></div>
+      </div>
+    </div>
+    
+    <div class="auth-right">
+      <div class="auth-hero">
+        <div class="auth-hero-title">Near<span style="color:var(--pink)">Chat</span></div>
+        <div class="auth-hero-subtitle">Connect with your vibe, instantly.</div>
+        
+        <div class="auth-profiles">
+          <div class="auth-prof-card">
+            <img src="https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=300&q=80&fit=crop" alt="Girl">
+            <div class="auth-prof-info">
+              <div class="name">Sarah, 22 <span>● Live</span></div>
+              <div class="dist">0.5 km away</div>
+            </div>
+          </div>
+          <div class="auth-prof-card" style="margin-top: 40px;">
+            <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&q=80&fit=crop" alt="Boy">
+            <div class="auth-prof-info">
+              <div class="name">Jason, 24 <span>● Live</span></div>
+              <div class="dist">1.2 km away</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="app">
+    <!-- ═══ SIDEBAR ═══ -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <text x="2" y="16" font-family="'Space Grotesk',sans-serif" font-weight="800" font-size="13" fill="white" letter-spacing="-0.5">NM</text>
+          </svg>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1px">
+          <div class="brand-name">Near<span>Me</span></div>
+          <div class="brand-pill">ULTRA</div>
+        </div>
+      </div>
+      <div class="stories-strip" id="stories-strip"></div>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" id="nav-discover" onclick="showPage('discover')"><i
+            class="ti ti-compass"></i>Discover</button>
+        <button class="nav-item" id="nav-feed" onclick="showPage('feed')"><i class="ti ti-layout-grid"></i>Feed <span
+            class="nav-badge" id="feed-badge" style="display:none">New</span></button>
+        <button class="nav-item" id="nav-nearby" onclick="showPage('nearby')"><i class="ti ti-map-2"></i>Nearby
+          Map</button>
+        <button class="nav-item" id="nav-matches" onclick="showPage('matches')"><i
+            class="ti ti-heart"></i>Matches</button>
+        <button class="nav-item" id="nav-chats" onclick="showPage('chats')"><i class="ti ti-messages"></i>Messages <span
+            class="nav-badge" id="chat-badge" style="display:none">0</span></button>
+        <button class="nav-item" id="nav-profile" onclick="showPage('profile')"><i class="ti ti-user-circle"></i>My
+          Profile</button>
+        <button class="nav-item" id="nav-admin" onclick="showPage('admin')" style="display:none"><i class="ti ti-shield-lock"></i>Admin Panel</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="rt-stats">
+          <div class="rt-stat">
+            <div class="rt-stat-num" id="sb-nearby">–</div>
+            <div class="rt-stat-lbl">Nearby</div>
+          </div>
+          <div class="rt-stat">
+            <div class="rt-stat-num" id="sb-online">–</div>
+            <div class="rt-stat-lbl">Online</div>
+          </div>
+          <div class="rt-stat">
+            <div class="rt-stat-num" id="sb-matches">–</div>
+            <div class="rt-stat-lbl">Matches</div>
+          </div>
+        </div>
+        <div class="sidebar-me" onclick="showPage('profile')">
+          <div class="me-av" id="sidebar-me-av"><span id="sidebar-me-emoji">😎</span></div>
+          <div>
+            <div class="me-name">You</div>
+            <div class="me-sub"><span style="color:var(--green)">●</span> Live now</div>
+          </div>
+          <i class="ti ti-chevron-right" style="margin-left:auto;color:var(--muted);font-size:14px"></i>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ═══ MAIN ═══ -->
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="topbar-title" id="page-title">Discover</div>
+          <div class="live-badge"><span class="live-dot"></span>LIVE</div>
+        </div>
+        <div class="topbar-right">
+          <div class="search-wrap"><i class="ti ti-search"></i><input type="text"
+              placeholder="Search people, interests…" oninput="filterCards(this.value)" id="search-input"></div>
+          <div class="icon-btn" id="loc-btn" title="Refresh GPS"><i class="ti ti-map-pin"></i></div>
+          <div class="icon-btn" onclick="showNotifDemo()" title="Notifications" id="bell-btn"><i class="ti ti-bell"></i>
+            <div class="notif-dot" id="bell-dot" style="display:none"></div>
+          </div>
+          <div class="icon-btn" onclick="toggleSettingsPanel()" title="Settings" id="settings-topbar-btn"><i class="ti ti-settings"></i></div>
+        </div>
+      </div>
+
+      <!-- ══ DISCOVER ══ -->
+      <div class="page active" id="page-discover">
+        <div class="discover-top">
+          <div class="chip on" data-key="all" onclick="toggleChip(this,'all')">All</div>
+          <div class="chip" data-key="girls" onclick="toggleChip(this,'girls')">👩 Girls</div>
+          <div class="chip" data-key="guys" onclick="toggleChip(this,'guys')">👦 Guys</div>
+          <div class="chip" data-key="music" onclick="toggleChip(this,'music')">🎵 Music</div>
+          <div class="chip" data-key="travel" onclick="toggleChip(this,'travel')">✈️ Travel</div>
+          <div class="chip" data-key="fitness" onclick="toggleChip(this,'fitness')">💪 Fitness</div>
+          <div class="chip" data-key="art" onclick="toggleChip(this,'art')">🎨 Art</div>
+          <div class="chip" data-key="food" onclick="toggleChip(this,'food')">🍕 Food</div>
+          <div class="chip" data-key="gaming" onclick="toggleChip(this,'gaming')">🎮 Gaming</div>
+          <div class="chip" data-key="photography" onclick="toggleChip(this,'photography')">📸 Photo</div>
+          <div class="radius-wrap">
+            <span class="radius-label">Radius</span>
+            <input type="range" id="radius-slider" min="0.5" max="10" step="0.5" value="5"
+              oninput="onRadiusChange(this.value)">
+            <span class="radius-val" id="radius-val">5 km</span>
+          </div>
+        </div>
+        <div class="discover-layout">
+          <div class="cards-side">
+            <div class="cards-grid" id="cards-grid"></div>
+          </div>
+          <div class="activity-panel">
+            <div class="activity-head">Activity Feed <div class="live-badge" style="font-size:9px;padding:2px 7px"><span
+                  class="live-dot"></span>LIVE</div>
+            </div>
+            <div class="activity-feed" id="activity-feed"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ FEED ══ -->
+      <div class="page" id="page-feed" style="display:none">
+        <div class="feed-wrap">
+          <div class="feed-create">
+            <div class="me-av" id="feed-me-av" style="width:38px;height:38px;font-size:16px"><span
+                id="feed-me-emoji">😎</span></div>
+            <div class="feed-create-input" onclick="openPostCreator()">What's happening near you? Share a photo or
+              video…</div>
+            <div class="feed-create-btns">
+              <button class="feed-create-btn" onclick="openPostCreator('photo')"><i class="ti ti-photo"
+                  style="font-size:16px;color:var(--blue)"></i> Photo</button>
+              <button class="feed-create-btn" onclick="openPostCreator('video')"><i class="ti ti-video"
+                  style="font-size:16px;color:var(--red)"></i> Video</button>
+            </div>
+          </div>
+          <div id="posts-list"></div>
+        </div>
+      </div>
+
+      <!-- ══ NEARBY ══ -->
+      <div class="page" id="page-nearby" style="display:none;overflow:hidden;height:100%">
+        <div class="nearby-layout" style="height:100%">
+          <div class="map-panel">
+            <div id="leaflet-map" style="width:100%;height:100%"></div>
+            <div class="radar-box"><i class="ti ti-radar" style="color:var(--pink);font-size:14px"></i><span
+                id="radar-txt" style="font-size:10.5px">Scanning…</span></div>
+            <div class="map-overlay"><strong id="map-loc-label">📍 Locating…</strong>
+              <div style="margin-top:4px">
+                <div class="loc-status"><span class="loc-dot"></span><span id="map-nearby-count">–</span> live nearby
+                </div>
+              </div>
+            </div>
+            <div class="gps-box" id="gps-box"><i class="ti ti-satellite"
+                style="font-size:13px;color:var(--green)"></i><span id="gps-text"
+                style="color:var(--muted2);font-size:11px">Getting GPS…</span></div>
+          </div>
+          <div class="list-panel">
+            <div class="list-header">
+              <div class="list-header-title">People Nearby</div>
+              <div class="live-badge" style="font-size:9px;padding:2px 7px"><span class="live-dot"></span>LIVE</div>
+            </div>
+            <div id="nearby-list" style="overflow-y:auto;flex:1"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ MATCHES ══ -->
+      <div class="page" id="page-matches" style="display:none">
+        <div class="matches-wrap">
+          <div class="section-head">❤️ Best Matches — AI ranked by interest overlap</div>
+          <div class="match-cards" id="match-list"></div>
+        </div>
+      </div>
+
+      <!-- ══ CHATS ══ -->
+      <div class="page" id="page-chats" style="display:none;overflow:hidden;height:100%">
+        <div class="chats-layout" style="height:100%">
+          <div class="chat-list-panel" id="chat-list-panel">
+            <div class="chat-list-head">Messages <span id="ai-on-pill"
+                style="display:none;font-size:10px;color:var(--purple);background:rgba(182,155,255,.1);border:1px solid rgba(182,155,255,.2);border-radius:6px;padding:2px 8px;font-weight:700;font-family:'Space Grotesk',sans-serif">AI
+                ON</span></div>
+            <div id="chat-list"></div>
+          </div>
+          <div class="chat-main" id="chat-main">
+            <div class="chat-empty"><i class="ti ti-messages"></i>
+              <p>Select a conversation</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PROFILE ══ -->
+      <div class="page" id="page-profile" style="display:none">
+        <div class="profile-wrap insta-profile-wrap">
+          <div class="insta-header">
+            <div class="insta-top-row">
+              <div class="big-av-wrap" onclick="openMyProfileView()">
+                <div class="big-av" id="my-big-av"><span id="my-big-emoji">😎</span></div>
+                <div class="big-av-ring"></div>
+                <div class="big-av-dot"></div>
+                <div class="upload-photo-overlay" onclick="event.stopPropagation();triggerPhotoUpload()"><i class="ti ti-camera" style="font-size:18px"></i></div>
+              </div>
+              <input type="file" id="profile-photo-input" accept="image/*" style="display:none"
+                onchange="onProfilePhotoChange(this)">
+
+              <div class="insta-stats">
+                <div class="insta-stat">
+                  <div class="stat-num" id="prof-posts-count">0</div>
+                  <div class="stat-lbl">Posts</div>
+                </div>
+                <div class="insta-stat insta-stat-clickable" onclick="openFollowModal('my','followers')" title="View Followers">
+                  <div class="stat-num" id="prof-nearby">0</div>
+                  <div class="stat-lbl">Followers</div>
+                </div>
+                <div class="insta-stat insta-stat-clickable" onclick="openFollowModal('my','following')" title="View Following">
+                  <div class="stat-num" id="prof-chats">0</div>
+                  <div class="stat-lbl">Following</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="insta-bio">
+              <div class="hero-name">You</div>
+              <div class="hero-loc"><i class="ti ti-map-pin" style="font-size:14px"></i><span
+                  id="profile-loc-text">Chennai</span>
+              </div>
+              <div class="bio-text">Living life near you ✨<br />📸 Photography & Travel</div>
+            </div>
+
+            <div class="insta-actions">
+              <button class="edit-btn-insta" onclick="openEditProfile()">Edit profile</button>
+              <button class="edit-btn-insta" onclick="toast('🔗 Profile link copied!')">Share profile</button>
+            </div>
+          </div>
+
+          <!-- Story Highlights -->
+          <div class="insta-highlights">
+            <div class="story-highlight add" onclick="openMyStoryCreator()">
+              <div class="story-ring add-ring">
+                <div class="story-inner">+</div>
+              </div>
+              <div class="story-lbl">New</div>
+            </div>
+          </div>
+          <div id="my-story-preview" style="display:none;"></div>
+
+          <!-- Tabs -->
+          <div class="insta-tabs">
+            <div class="insta-tab active" onclick="switchInstaTab('posts', this)"><i class="ti ti-layout-grid"></i>
+            </div>
+            <div class="insta-tab" onclick="switchInstaTab('tagged', this)"><i class="ti ti-user-square"></i></div>
+          </div>
+
+          <!-- Grid (Posts) -->
+          <div class="insta-tab-content active" id="tab-posts">
+            <div class="insta-grid" style="display:flex;align-items:center;justify-content:center;padding:40px 0;grid-template-columns:1fr;text-align:center;color:var(--muted)">
+              <div>
+                <i class="ti ti-camera" style="font-size:32px;margin-bottom:8px;opacity:0.5"></i>
+                <div style="font-size:13px;font-weight:600">No Posts Yet</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="insta-tab-content" id="tab-tagged" style="display:none; padding: 32px 0;">
+            <div class="empty-state">
+              <i class="ti ti-user-square"></i>
+              <p>No tagged photos yet</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      
+      <!-- ══ USER PROFILE (OTHER USERS) ══ -->
+      <div class="page" id="page-user-profile" style="display:none">
+        <div class="profile-wrap insta-profile-wrap">
+          <div style="display:flex;align-items:center;margin-bottom:16px;cursor:pointer" onclick="closeUserProfile()">
+            <i class="ti ti-arrow-left" style="font-size:20px;margin-right:8px"></i> <span style="font-weight:600">Back</span>
+          </div>
+          
+          <div class="insta-header">
+            <div class="insta-top-row">
+              <div class="big-av-wrap" id="u-prof-av-wrap">
+                <div class="big-av" id="u-prof-av"></div>
+                <div class="big-av-ring" id="u-prof-ring" style="display:none"></div>
+              </div>
+              
+              <div class="insta-stats">
+                <div class="insta-stat">
+                  <div class="stat-num" id="u-prof-posts">0</div>
+                  <div class="stat-lbl">Posts</div>
+                </div>
+                <div class="insta-stat insta-stat-clickable" id="u-prof-followers-stat" onclick="openFollowModal('user','followers')" title="View Followers">
+                  <div class="stat-num" id="u-prof-followers">0</div>
+                  <div class="stat-lbl">Followers</div>
+                </div>
+                <div class="insta-stat insta-stat-clickable" id="u-prof-following-stat" onclick="openFollowModal('user','following')" title="View Following">
+                  <div class="stat-num" id="u-prof-following">0</div>
+                  <div class="stat-lbl">Following</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="insta-bio">
+              <div class="hero-name" id="u-prof-name">Name</div>
+              <div class="hero-loc"><i class="ti ti-map-pin" style="font-size:14px"></i><span id="u-prof-dist">Location</span></div>
+              <div class="bio-text" id="u-prof-bio">Bio text</div>
+              <div style="font-size:12px;color:var(--pink);margin-top:4px;font-weight:600" id="u-prof-match">❤️ Match</div>
+            </div>
+
+            <div class="insta-actions">
+              <button class="edit-btn-insta" id="u-prof-msg-btn" style="background:var(--grad);color:#fff">Message</button>
+              <button class="edit-btn-insta" id="u-prof-follow-btn" style="background:var(--blue, #3b82f6);color:#fff">Follow</button>
+              <button class="edit-btn-insta" id="u-prof-wave-btn">👋 Wave</button>
+            </div>
+          </div>
+
+          <!-- Story Highlights -->
+          <div class="insta-highlights" id="u-prof-highlights" style="display:none">
+            <div class="story-highlight" id="u-prof-story-btn">
+              <div class="story-ring live-ring">
+                <div class="story-inner" id="u-prof-story-inner"></div>
+              </div>
+              <div class="story-lbl">View Story</div>
+            </div>
+          </div>
+
+          <!-- Tabs -->
+          <div class="insta-tabs">
+            <div class="insta-tab active"><i class="ti ti-layout-grid"></i></div>
+            <div class="insta-tab"><i class="ti ti-user-square"></i></div>
+          </div>
+
+          <!-- Grid (Posts) -->
+          <div class="insta-tab-content active">
+            <div class="insta-grid" id="u-prof-grid">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SUPER ADMIN PANEL ══ -->
+      <div class="page" id="page-admin" style="display:none; flex-direction:column; gap:20px; overflow-y:auto; padding:20px 24px 80px;">
+        
+        <!-- Metrics Section -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:16px;">
+          
+          <div style="background:var(--dark3); border:1px solid var(--border); border-radius:16px; padding:18px 20px; display:flex; align-items:center; gap:16px;">
+            <div style="background:rgba(94,171,255,.12); color:var(--blue); width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:24px;"><i class="ti ti-users"></i></div>
+            <div>
+              <div style="font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Total Users</div>
+              <div style="font-size:24px; font-weight:700; font-family:'Space Grotesk',sans-serif; color:var(--text); margin-top:2px;" id="admin-stat-users">-</div>
+            </div>
+          </div>
+
+          <div style="background:var(--dark3); border:1px solid var(--border); border-radius:16px; padding:18px 20px; display:flex; align-items:center; gap:16px;">
+            <div style="background:rgba(25,240,144,.12); color:var(--green); width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:24px;"><i class="ti ti-circle-check"></i></div>
+            <div>
+              <div style="font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Online Active</div>
+              <div style="font-size:24px; font-weight:700; font-family:'Space Grotesk',sans-serif; color:var(--text); margin-top:2px;" id="admin-stat-online">-</div>
+            </div>
+          </div>
+
+          <div style="background:var(--dark3); border:1px solid var(--border); border-radius:16px; padding:18px 20px; display:flex; align-items:center; gap:16px;">
+            <div style="background:rgba(240,67,106,.12); color:var(--pink); width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:24px;"><i class="ti ti-layout-grid"></i></div>
+            <div>
+              <div style="font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Total Posts</div>
+              <div style="font-size:24px; font-weight:700; font-family:'Space Grotesk',sans-serif; color:var(--text); margin-top:2px;" id="admin-stat-posts">-</div>
+            </div>
+          </div>
+
+          <div style="background:var(--dark3); border:1px solid var(--border); border-radius:16px; padding:18px 20px; display:flex; align-items:center; gap:16px;">
+            <div style="background:rgba(182,155,255,.12); color:var(--purple); width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:24px;"><i class="ti ti-circles"></i></div>
+            <div>
+              <div style="font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Total Stories</div>
+              <div style="font-size:24px; font-weight:700; font-family:'Space Grotesk',sans-serif; color:var(--text); margin-top:2px;" id="admin-stat-stories">-</div>
+            </div>
+          </div>
+
+          <div style="background:var(--dark3); border:1px solid var(--border); border-radius:16px; padding:18px 20px; display:flex; align-items:center; gap:16px;">
+            <div style="background:rgba(0,212,255,.12); color:var(--cyan); width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:24px;"><i class="ti ti-messages"></i></div>
+            <div>
+              <div style="font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Messages Log</div>
+              <div style="font-size:24px; font-weight:700; font-family:'Space Grotesk',sans-serif; color:var(--text); margin-top:2px;" id="admin-stat-messages">-</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Admin Sub-tabs Buttons -->
+        <div style="display:flex; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--border); padding-bottom:12px; margin-top:8px;">
+          <div class="chip on" id="admin-btn-tab-users" onclick="switchAdminTab('users')" style="cursor:pointer; font-weight:600;">👥 Users</div>
+          <div class="chip" id="admin-btn-tab-posts" onclick="switchAdminTab('posts')" style="cursor:pointer; font-weight:600;">📝 Posts</div>
+          <div class="chip" id="admin-btn-tab-stories" onclick="switchAdminTab('stories')" style="cursor:pointer; font-weight:600;">🎬 Stories</div>
+          <div class="chip" id="admin-btn-tab-messages" onclick="switchAdminTab('messages')" style="cursor:pointer; font-weight:600;">💬 Messages Log</div>
+        </div>
+
+        <!-- Admin Sections Grid -->
+        <div style="display:flex; flex-direction:column; gap:24px;">
+          
+          <!-- Users Management -->
+          <div class="admin-section" id="admin-section-users" style="background:var(--dark2); border:1px solid var(--border); border-radius:18px; padding:20px; display:flex; flex-direction:column; gap:16px;">
+            <div style="display:flex; align-items:center; justify-content:between;">
+              <h3 style="font-size:16px; font-weight:700; font-family:'Space Grotesk',sans-serif; color:var(--text); display:flex; align-items:center; gap:8px;"><i class="ti ti-users" style="color:var(--blue);"></i> Users Database</h3>
+            </div>
+            
+            <div style="overflow-x:auto;">
+              <table style="width:100%; border-collapse:collapse; min-width:600px;" id="admin-users-table">
+                <thead>
+                  <tr style="border-bottom:1px solid var(--border); text-align:left; font-size:11px; text-transform:uppercase; color:var(--muted); font-weight:700; letter-spacing:0.5px;">
+                    <th style="padding:12px 10px;">ID</th>
+                    <th style="padding:12px 10px;">User</th>
+                    <th style="padding:12px 10px;">Email</th>
+                    <th style="padding:12px 10px;">Location</th>
+                    <th style="padding:12px 10px;">Status</th>
+                    <th style="padding:12px 10px; text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-users-list" style="font-size:13px; color:var(--text);">
+                  <!-- Rows will be injected here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Posts Management -->
+          <div class="admin-section" id="admin-section-posts" style="background:var(--dark2); border:1px solid var(--border); border-radius:18px; padding:20px; display:none; flex-direction:column; gap:16px;">
+            <h3 style="font-size:16px; font-weight:700; font-family:'Space Grotesk',sans-serif; color:var(--text); display:flex; align-items:center; gap:8px;"><i class="ti ti-layout-grid" style="color:var(--pink);"></i> Feed Posts</h3>
+            
+            <div style="overflow-x:auto;">
+              <table style="width:100%; border-collapse:collapse; min-width:600px;" id="admin-posts-table">
+                <thead>
+                  <tr style="border-bottom:1px solid var(--border); text-align:left; font-size:11px; text-transform:uppercase; color:var(--muted); font-weight:700; letter-spacing:0.5px;">
+                    <th style="padding:12px 10px;">ID</th>
+                    <th style="padding:12px 10px;">Author</th>
+                    <th style="padding:12px 10px;">Caption</th>
+                    <th style="padding:12px 10px;">Media</th>
+                    <th style="padding:12px 10px;">Created</th>
+                    <th style="padding:12px 10px; text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-posts-list" style="font-size:13px; color:var(--text);">
+                  <!-- Rows will be injected here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Stories Management -->
+          <div class="admin-section" id="admin-section-stories" style="background:var(--dark2); border:1px solid var(--border); border-radius:18px; padding:20px; display:none; flex-direction:column; gap:16px;">
+            <h3 style="font-size:16px; font-weight:700; font-family:'Space Grotesk',sans-serif; color:var(--text); display:flex; align-items:center; gap:8px;"><i class="ti ti-circles" style="color:var(--purple);"></i> User Stories</h3>
+            
+            <div style="overflow-x:auto;">
+              <table style="width:100%; border-collapse:collapse; min-width:600px;" id="admin-stories-table">
+                <thead>
+                  <tr style="border-bottom:1px solid var(--border); text-align:left; font-size:11px; text-transform:uppercase; color:var(--muted); font-weight:700; letter-spacing:0.5px;">
+                    <th style="padding:12px 10px;">ID</th>
+                    <th style="padding:12px 10px;">Author</th>
+                    <th style="padding:12px 10px;">Story Text</th>
+                    <th style="padding:12px 10px;">Media / BG</th>
+                    <th style="padding:12px 10px;">Created</th>
+                    <th style="padding:12px 10px; text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-stories-list" style="font-size:13px; color:var(--text);">
+                  <!-- Rows will be injected here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Messages Log Management -->
+          <div class="admin-section" id="admin-section-messages" style="background:var(--dark2); border:1px solid var(--border); border-radius:18px; padding:20px; display:none; flex-direction:column; gap:16px;">
+            <h3 style="font-size:16px; font-weight:700; font-family:'Space Grotesk',sans-serif; color:var(--text); display:flex; align-items:center; gap:8px;"><i class="ti ti-messages" style="color:var(--cyan);"></i> Chat Messages Log</h3>
+            
+            <div style="overflow-x:auto;">
+              <table style="width:100%; border-collapse:collapse; min-width:600px;" id="admin-messages-table">
+                <thead>
+                  <tr style="border-bottom:1px solid var(--border); text-align:left; font-size:11px; text-transform:uppercase; color:var(--muted); font-weight:700; letter-spacing:0.5px;">
+                    <th style="padding:12px 10px;">ID</th>
+                    <th style="padding:12px 10px;">Sender</th>
+                    <th style="padding:12px 10px;">Receiver</th>
+                    <th style="padding:12px 10px;">Message Text</th>
+                    <th style="padding:12px 10px;">Media Type</th>
+                    <th style="padding:12px 10px;">Sent At</th>
+                    <th style="padding:12px 10px; text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-messages-list" style="font-size:13px; color:var(--text);">
+                  <!-- Rows will be injected here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MOBILE NAV -->
+  <nav class="mobile-nav">
+    <button class="mob-btn active" id="mob-discover" onclick="showPage('discover')"><i
+        class="ti ti-compass"></i>Discover</button>
+    <button class="mob-btn" id="mob-feed" onclick="showPage('feed')"><i class="ti ti-layout-grid"></i>Feed</button>
+    <button class="mob-btn" id="mob-nearby" onclick="showPage('nearby')"><i class="ti ti-map-2"></i>Nearby</button>
+    <button class="mob-btn" id="mob-chats" onclick="showPage('chats')"><i class="ti ti-messages"></i>Chats</button>
+    <button class="mob-btn" id="mob-profile" onclick="showPage('profile')"><i
+        class="ti ti-user-circle"></i>Profile</button>
+    <button class="mob-btn" id="mob-admin" onclick="showPage('admin')" style="display:none"><i class="ti ti-shield-lock"></i>Admin</button>
+  </nav>
+
+  <!-- PROFILE MODAL -->
+  <div class="modal-bg" id="modal" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal()"><i class="ti ti-x"></i></button>
+      <div class="modal-av" id="m-av"></div>
+      <div class="modal-name" id="m-name"></div>
+      <div class="modal-meta" id="m-meta"></div>
+      <div class="modal-tags" id="m-tags"></div>
+      <div class="modal-bio" id="m-bio" style="display:none"></div>
+      <div class="modal-match" id="m-match"></div>
+      <button class="modal-story-btn" id="m-story-btn" onclick="openPersonStory()"><i class="ti ti-circles"
+          style="font-size:16px"></i> View Story</button>
+      <div class="modal-btns">
+        <button class="btn-secondary" onclick="sendWave()" id="m-wave-btn">👋 Wave</button>
+        <button class="btn-primary" id="m-msg-btn"><i class="ti ti-message"
+            style="font-size:15px;vertical-align:-2px"></i> Message</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STORY VIEWER -->
+  <div class="story-viewer" id="story-viewer">
+    <div class="story-progress-row" id="story-progress-row"></div>
+    <div class="story-top">
+      <div class="story-user-av" id="sv-av"></div>
+      <div>
+        <div class="story-user-name" id="sv-name"></div>
+        <div class="story-user-time" id="sv-time"></div>
+      </div>
+      <button class="story-close-btn" onclick="closeStory()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="story-content" id="story-content">
+      <button class="story-side-btn prev" onclick="prevStory()"><i class="ti ti-chevron-left"></i></button>
+      <button class="story-side-btn next" onclick="nextStory()"><i class="ti ti-chevron-right"></i></button>
+    </div>
+    <div class="story-reply">
+      <input class="story-reply-input" id="story-reply-input" placeholder="Reply to story…"
+        onkeydown="if(event.key==='Enter')sendStoryReply()">
+      <button class="story-like-btn" onclick="likeStory()">❤️</button>
+    </div>
+  </div>
+
+  <!-- POST CREATOR MODAL -->
+  <div class="modal-bg" id="post-modal-bg" onclick="if(event.target===this)closePostCreator()">
+    <div class="post-modal">
+      <div class="post-modal-head">
+        <div style="font-size:15px;font-weight:700;font-family:'Space Grotesk',sans-serif">Create Post</div>
+        <button class="modal-close" style="position:relative;top:auto;right:auto" onclick="closePostCreator()"><i
+            class="ti ti-x"></i></button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px">
+        <div class="me-av" id="post-creator-av" style="width:38px;height:38px;font-size:16px"><span
+            id="post-creator-emoji">😎</span></div>
+        <div style="font-size:13px;font-weight:600">You</div>
+      </div>
+      <div class="post-preview-area" id="post-preview-area" onclick="triggerPostMediaUpload()">
+        <i class="ti ti-cloud-upload" style="font-size:36px;opacity:.4"></i>
+        <div style="font-size:13px;opacity:.6">Tap to add photo or video</div>
+      </div>
+      <input type="file" id="post-media-input" accept="image/*,video/*" style="display:none"
+        onchange="onPostMediaChange(this)">
+      <textarea class="post-caption-input" id="post-caption-input" placeholder="Write a caption… 📍 What's near you?"
+        rows="3"></textarea>
+      <div style="padding:0 16px 14px;display:flex;gap:8px">
+        <button onclick="submitPost()"
+          style="flex:1;background:var(--grad);border:none;border-radius:11px;padding:12px;font-size:14px;font-weight:600;color:#fff;cursor:pointer;box-shadow:var(--shadow-pink)">Share
+          Post</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMAGE VIEWER -->
+  <div class="img-viewer" id="img-viewer" onclick="this.classList.remove('open')">
+    <img id="img-viewer-img" src="" alt="">
+    <button class="img-viewer-close"><i class="ti ti-x"></i></button>
+  </div>
+
+  <!-- STORY CREATOR -->
+  <div class="modal-bg" id="story-creator-modal" onclick="if(event.target===this)closeStoryCreator()">
+    <div class="post-modal">
+      <div class="post-modal-head">
+        <div style="font-size:15px;font-weight:700;font-family:'Space Grotesk',sans-serif">Add Story</div>
+        <button class="modal-close" style="position:relative;top:auto;right:auto" onclick="closeStoryCreator()"><i
+            class="ti ti-x"></i></button>
+      </div>
+      <div class="post-preview-area" id="story-preview-area" onclick="triggerStoryMediaUpload()">
+        <i class="ti ti-cloud-upload" style="font-size:36px;opacity:.4"></i>
+        <div style="font-size:13px;opacity:.6">Tap to add photo or video</div>
+      </div>
+      <input type="file" id="story-media-input" accept="image/*,video/*" style="display:none"
+        onchange="onStoryMediaChange(this)">
+      <div style="padding:0 16px 14px">
+        <input
+          style="width:100%;background:var(--dark3);border:1px solid var(--border);border-radius:9px;padding:10px 14px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none"
+          id="story-text-input" placeholder="Add text to story…">
+      </div>
+      <div style="padding:0 16px 14px;display:flex;gap:8px">
+        <button onclick="submitStory()"
+          style="flex:1;background:var(--grad);border:none;border-radius:11px;padding:12px;font-size:14px;font-weight:600;color:#fff;cursor:pointer;box-shadow:var(--shadow-pink)">Share
+          Story</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOASTS & NOTIFICATIONS -->
+  <div class="toast-container" id="toast-container"></div>
+  <div class="notif-popup" id="notif-popup" onclick="this.classList.remove('show')">
+    <div class="notif-av" id="notif-av"></div>
+    <div>
+      <div class="notif-title" id="notif-title"></div>
+      <div class="notif-sub" id="notif-sub"></div>
+    </div>
+  </div>
+
+  <!-- EDIT PROFILE MODAL -->
+  <div class="modal-bg" id="edit-profile-modal" onclick="if(event.target===this)closeEditProfile()">
+    <div class="post-modal">
+      <div class="post-modal-head">
+        <div style="font-size:15px;font-weight:700;font-family:'Space Grotesk',sans-serif">Edit Profile</div>
+        <button class="modal-close" style="position:relative;top:auto;right:auto" onclick="closeEditProfile()"><i class="ti ti-x"></i></button>
+      </div>
+      <div style="padding:16px">
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px">Name</label>
+        <input type="text" id="edit-name-input" value="You" style="width:100%;background:var(--dark3);border:1px solid var(--border);border-radius:9px;padding:10px 14px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-top:6px;margin-bottom:14px;">
+        
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px">Bio</label>
+        <textarea id="edit-bio-input" rows="3" style="width:100%;background:var(--dark3);border:1px solid var(--border);border-radius:9px;padding:10px 14px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-top:6px;margin-bottom:14px;resize:none;">Living life near you ✨
+📸 Photography & Travel</textarea>
+
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px">Location</label>
+        <input type="text" id="edit-loc-input" value="Chennai, Tamil Nadu" style="width:100%;background:var(--dark3);border:1px solid var(--border);border-radius:9px;padding:10px 14px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-top:6px;margin-bottom:14px;">
+      </div>
+      <div style="padding:0 16px 16px;display:flex;gap:8px">
+        <button onclick="saveEditProfile()" style="flex:1;background:var(--grad);border:none;border-radius:11px;padding:12px;font-size:14px;font-weight:600;color:#fff;cursor:pointer;box-shadow:var(--shadow-pink)">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN EDIT USER MODAL -->
+  <div class="modal-bg" id="admin-edit-user-modal" onclick="if(event.target===this)closeAdminEditUser()">
+    <div class="post-modal">
+      <div class="post-modal-head">
+        <div style="font-size:15px;font-weight:700;font-family:'Space Grotesk',sans-serif">Admin: Edit User Profile</div>
+        <button class="modal-close" style="position:relative;top:auto;right:auto" onclick="closeAdminEditUser()"><i class="ti ti-x"></i></button>
+      </div>
+      <div style="padding:16px">
+        <input type="hidden" id="admin-edit-userid-input">
+        
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px">Full Name</label>
+        <input type="text" id="admin-edit-name-input" style="width:100%;background:var(--dark3);border:1px solid var(--border);border-radius:9px;padding:10px 14px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-top:6px;margin-bottom:14px;">
+        
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px">Email Address</label>
+        <input type="email" id="admin-edit-email-input" style="width:100%;background:var(--dark3);border:1px solid var(--border);border-radius:9px;padding:10px 14px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-top:6px;margin-bottom:14px;">
+        
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px">Bio</label>
+        <textarea id="admin-edit-bio-input" rows="3" style="width:100%;background:var(--dark3);border:1px solid var(--border);border-radius:9px;padding:10px 14px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-top:6px;margin-bottom:14px;resize:none;"></textarea>
+
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.5px">Location</label>
+        <input type="text" id="admin-edit-loc-input" style="width:100%;background:var(--dark3);border:1px solid var(--border);border-radius:9px;padding:10px 14px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-top:6px;margin-bottom:14px;">
+      </div>
+      <div style="padding:0 16px 16px;display:flex;gap:8px">
+        <button onclick="saveAdminEditUser()" style="flex:1;background:var(--grad);border:none;border-radius:11px;padding:12px;font-size:14px;font-weight:600;color:#fff;cursor:pointer;box-shadow:var(--shadow-pink)">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════ SETTINGS SLIDE PANEL ════ -->
+  <div class="settings-overlay" id="settings-overlay" onclick="toggleSettingsPanel()"></div>
+  <div class="settings-panel" id="settings-panel">
+    <div class="settings-panel-head">
+      <div style="font-size:16px;font-weight:700;font-family:'Space Grotesk',sans-serif">Settings</div>
+      <button class="modal-close" style="position:relative;top:auto;right:auto" onclick="toggleSettingsPanel()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="settings-panel-body">
+
+      <!-- ACCOUNT -->
+      <div class="sp-section-title">Account</div>
+      <div class="sp-row" onclick="openEditProfile()">
+        <div class="sp-icon" style="background:rgba(94,171,255,.12);color:var(--blue)"><i class="ti ti-user-edit"></i></div>
+        <div class="sp-info"><div class="sp-label">Edit Profile</div><div class="sp-sub">Name, bio, location</div></div>
+        <i class="ti ti-chevron-right sp-arrow"></i>
+      </div>
+      <div class="sp-row" onclick="triggerPhotoUpload()">
+        <div class="sp-icon" style="background:rgba(240,67,106,.12);color:var(--pink)"><i class="ti ti-camera"></i></div>
+        <div class="sp-info"><div class="sp-label">Change Profile Photo</div><div class="sp-sub">Upload from your device</div></div>
+        <i class="ti ti-chevron-right sp-arrow"></i>
+      </div>
+      <div class="sp-row" onclick="toast('🔗 Profile link copied!')">
+        <div class="sp-icon" style="background:rgba(25,240,144,.12);color:var(--green)"><i class="ti ti-link"></i></div>
+        <div class="sp-info"><div class="sp-label">Share Profile Link</div><div class="sp-sub">Copy your NearMe link</div></div>
+        <i class="ti ti-chevron-right sp-arrow"></i>
+      </div>
+
+      <!-- PRIVACY & DISCOVERY -->
+      <div class="sp-section-title">Privacy & Discovery</div>
+      <div class="sp-row">
+        <div class="sp-icon" style="background:rgba(240,67,106,.12);color:var(--pink)"><i class="ti ti-map-pin"></i></div>
+        <div class="sp-info"><div class="sp-label">Share Live Location</div><div class="sp-sub">Visible to matched users</div></div>
+        <div class="toggle on" id="toggle-loc" onclick="this.classList.toggle('on');onToggleLoc(this)"></div>
+      </div>
+      <div class="sp-row">
+        <div class="sp-icon" style="background:rgba(94,171,255,.12);color:var(--blue)"><i class="ti ti-eye"></i></div>
+        <div class="sp-info"><div class="sp-label">Show Me in Discover</div><div class="sp-sub">Others can find you</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="sp-row">
+        <div class="sp-icon" style="background:rgba(25,240,144,.12);color:var(--green)"><i class="ti ti-lock"></i></div>
+        <div class="sp-info"><div class="sp-label">Private Account</div><div class="sp-sub">Approve followers manually</div></div>
+        <div class="toggle" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="sp-row">
+        <div class="sp-icon" style="background:rgba(255,71,87,.12);color:var(--red)"><i class="ti ti-eye-off"></i></div>
+        <div class="sp-info"><div class="sp-label">Hide Online Status</div><div class="sp-sub">Others won't see when you're active</div></div>
+        <div class="toggle" onclick="this.classList.toggle('on')"></div>
+      </div>
+
+      <!-- MATCHING -->
+      <div class="sp-section-title">Matching</div>
+      <div class="sp-row">
+        <div class="sp-icon" style="background:rgba(240,67,106,.12);color:var(--pink)"><i class="ti ti-heart"></i></div>
+        <div class="sp-info"><div class="sp-label">Auto Match by Interest</div><div class="sp-sub">Smart AI-powered matching</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="sp-row">
+        <div class="sp-icon" style="background:rgba(182,155,255,.12);color:var(--purple)"><i class="ti ti-adjustments"></i></div>
+        <div class="sp-info"><div class="sp-label">Discovery Radius</div><div class="sp-sub" id="sp-radius-lbl">5 km</div></div>
+        <input type="range" min="0.5" max="20" step="0.5" value="5" style="width:80px" oninput="onRadiusChange(this.value);document.getElementById('sp-radius-lbl').textContent=this.value+' km';document.getElementById('radius-slider').value=this.value;document.getElementById('radius-val').textContent=this.value+' km'">
+      </div>
+      <div class="sp-row">
+        <div class="sp-icon" style="background:rgba(94,171,255,.12);color:var(--blue)"><i class="ti ti-users"></i></div>
+        <div class="sp-info"><div class="sp-label">Show All Genders</div><div class="sp-sub">See everyone nearby</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div class="sp-section-title">Notifications</div>
+      <div class="sp-row">
+        <div class="sp-icon" style="background:rgba(255,181,71,.12);color:var(--amber)"><i class="ti ti-bell"></i></div>
+        <div class="sp-info"><div class="sp-label">Nearby Alerts</div><div class="sp-sub">Alert when people arrive near you</div></div>
+        <div class="toggle on" id="toggle-notifs" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="sp-row">
+        <div class="sp-icon" style="background:rgba(240,67,106,.12);color:var(--pink)"><i class="ti ti-message"></i></div>
+        <div class="sp-info"><div class="sp-label">Message Notifications</div><div class="sp-sub">New chats and replies</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="sp-row">
+        <div class="sp-icon" style="background:rgba(25,240,144,.12);color:var(--green)"><i class="ti ti-hand-stop"></i></div>
+        <div class="sp-info"><div class="sp-label">Wave Notifications</div><div class="sp-sub">When someone waves at you</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+
+      <!-- MEDIA & CHAT -->
+      <div class="sp-section-title">Media & Chat</div>
+      <div class="sp-row">
+        <div class="sp-icon" style="background:rgba(0,212,255,.12);color:var(--cyan)"><i class="ti ti-microphone"></i></div>
+        <div class="sp-info"><div class="sp-label">Voice Notes</div><div class="sp-sub">Record & send audio messages</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="sp-row">
+        <div class="sp-icon" style="background:rgba(94,171,255,.12);color:var(--blue)"><i class="ti ti-photo"></i></div>
+        <div class="sp-info"><div class="sp-label">Auto-Save Media</div><div class="sp-sub">Save received photos to gallery</div></div>
+        <div class="toggle" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="sp-row">
+        <div class="sp-icon" style="background:rgba(182,155,255,.12);color:var(--purple)"><i class="ti ti-brand-telegram"></i></div>
+        <div class="sp-info"><div class="sp-label">Read Receipts</div><div class="sp-sub">Show when you've seen messages</div></div>
+        <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+      </div>
+
+      <!-- INTERESTS -->
+      <div class="sp-section-title">My Interests</div>
+      <div style="padding:4px 0 12px">
+        <div class="interest-grid" style="padding:0 16px">
+          <div class="int-tag sel" onclick="this.classList.toggle('sel')">🎵 Music</div>
+          <div class="int-tag sel" onclick="this.classList.toggle('sel')">✈️ Travel</div>
+          <div class="int-tag sel" onclick="this.classList.toggle('sel')">🍕 Food</div>
+          <div class="int-tag" onclick="this.classList.toggle('sel')">💪 Fitness</div>
+          <div class="int-tag" onclick="this.classList.toggle('sel')">🎨 Art</div>
+          <div class="int-tag" onclick="this.classList.toggle('sel')">📚 Books</div>
+          <div class="int-tag" onclick="this.classList.toggle('sel')">🎮 Gaming</div>
+          <div class="int-tag sel" onclick="this.classList.toggle('sel')">🏍️ Bikes</div>
+          <div class="int-tag" onclick="this.classList.toggle('sel')">🎬 Movies</div>
+          <div class="int-tag" onclick="this.classList.toggle('sel')">🌿 Nature</div>
+          <div class="int-tag" onclick="this.classList.toggle('sel')">📸 Photography</div>
+          <div class="int-tag" onclick="this.classList.toggle('sel')">🧘 Yoga</div>
+        </div>
+      </div>
+
+      <!-- DANGER ZONE -->
+      <div class="sp-section-title" style="color:var(--red)">Account Actions</div>
+      <div class="sp-row" onclick="exportData()">
+        <div class="sp-icon" style="background:rgba(94,171,255,.12);color:var(--blue)"><i class="ti ti-download"></i></div>
+        <div class="sp-info"><div class="sp-label">Export My Data</div><div class="sp-sub">Download your account data</div></div>
+        <i class="ti ti-chevron-right sp-arrow"></i>
+      </div>
+      <div class="sp-row" onclick="deactivateAccount()">
+        <div class="sp-icon" style="background:rgba(255,71,87,.12);color:var(--red)"><i class="ti ti-user-off"></i></div>
+        <div class="sp-info"><div class="sp-label">Deactivate Account</div><div class="sp-sub">Permanently delete your profile</div></div>
+        <i class="ti ti-chevron-right sp-arrow"></i>
+      </div>
+
+      <!-- LOGOUT -->
+      <button onclick="logoutUser()" style="width:100%;background:rgba(240,67,106,.12);border:1px solid rgba(240,67,106,.3);border-radius:12px;padding:13px;font-size:14px;font-weight:600;color:var(--pink);display:flex;align-items:center;justify-content:center;gap:8px;margin:16px 0 8px;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(240,67,106,.2)'" onmouseout="this.style.background='rgba(240,67,106,.12)'">
+        <i class="ti ti-logout"></i> Log Out
+      </button>
+      <div style="text-align:center;font-size:10px;color:var(--muted);padding-bottom:32px">NearMe Ultra v1.0 · Made with ❤️ in Chennai</div>
+    </div>
+  </div>
+
+  <!-- MY PROFILE VIEW MODAL -->
+  <div class="modal-bg" id="my-profile-view-modal" onclick="if(event.target===this)closeMyProfileView()">
+    <div class="my-prof-modal">
+      <button class="modal-close" onclick="closeMyProfileView()"><i class="ti ti-x"></i></button>
+
+      <!-- Cover gradient -->
+      <div class="my-prof-cover"></div>
+
+      <!-- Avatar -->
+      <div class="my-prof-av-wrap">
+        <div class="my-prof-av" id="mpv-av">😎</div>
+        <div class="my-prof-av-ring"></div>
+        <div class="my-prof-online-dot"></div>
+      </div>
+
+      <!-- Info -->
+      <div class="my-prof-body">
+        <div class="my-prof-name" id="mpv-name">You</div>
+        <div class="my-prof-loc"><i class="ti ti-map-pin" style="font-size:12px;color:var(--pink)"></i><span id="mpv-loc">Chennai</span></div>
+        <div class="my-prof-bio" id="mpv-bio">Living life near you ✨</div>
+
+        <div class="my-prof-stats">
+          <div class="my-prof-stat"><div class="my-prof-stat-num" id="mpv-posts">0</div><div class="my-prof-stat-lbl">Posts</div></div>
+          <div class="my-prof-stat-div"></div>
+          <div class="my-prof-stat"><div class="my-prof-stat-num" id="mpv-followers">0</div><div class="my-prof-stat-lbl">Followers</div></div>
+          <div class="my-prof-stat-div"></div>
+          <div class="my-prof-stat"><div class="my-prof-stat-num" id="mpv-following">0</div><div class="my-prof-stat-lbl">Following</div></div>
+        </div>
+
+        <div class="my-prof-badge"><span class="live-dot" style="width:7px;height:7px"></span> Live now</div>
+
+        <div class="my-prof-actions">
+          <button class="my-prof-btn-primary" onclick="closeMyProfileView();openEditProfile()"><i class="ti ti-edit"></i> Edit Profile</button>
+          <button class="my-prof-btn-secondary" onclick="triggerPhotoUpload();closeMyProfileView()"><i class="ti ti-camera"></i> Change Photo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ FOLLOWERS / FOLLOWING MODAL ═══ -->
+  <div class="follow-modal-bg" id="follow-modal-bg" onclick="if(event.target===this)closeFollowModal()">
+    <div class="follow-modal-sheet" id="follow-modal-sheet">
+      <!-- Drag handle -->
+      <div class="follow-modal-handle"></div>
+
+      <!-- Header -->
+      <div class="follow-modal-header">
+        <button class="follow-modal-back" onclick="closeFollowModal()">
+          <i class="ti ti-arrow-left"></i>
+        </button>
+        <div class="follow-modal-title" id="follow-modal-title">Followers</div>
+        <div style="width:32px"></div>
+      </div>
+
+      <!-- Search -->
+      <div class="follow-modal-search-wrap">
+        <i class="ti ti-search" style="color:var(--muted);font-size:15px"></i>
+        <input type="text" id="follow-modal-search" placeholder="Search…" oninput="filterFollowList(this.value)" class="follow-modal-search">
+      </div>
+
+      <!-- User list -->
+      <div class="follow-modal-list" id="follow-modal-list">
+        <!-- populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- COMMENTS MODAL -->
+  <div class="follow-modal-bg" id="comments-modal-bg" onclick="if(event.target===this)closeCommentsModal()">
+    <div class="follow-modal-sheet" id="comments-modal-sheet" style="display:flex;flex-direction:column;height:70vh">
+      <div class="follow-modal-handle"></div>
+      <div class="follow-modal-header" style="border-bottom:1px solid var(--border);padding-bottom:12px">
+        <div style="width:32px"></div>
+        <div class="follow-modal-title" style="flex:1;text-align:center">Comments</div>
+        <button class="modal-close" style="position:static" onclick="closeCommentsModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="comments-list" id="comments-list" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px">
+        <!-- populated by JS -->
+      </div>
+      <div class="comments-input-area" style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center;background:var(--dark2)">
+        <input type="text" id="comment-input" placeholder="Add a comment..." style="flex:1;background:var(--dark3);border:1px solid var(--border);border-radius:20px;padding:10px 16px;color:var(--text);font-size:14px;outline:none" onkeydown="if(event.key==='Enter')submitComment()">
+        <button onclick="submitComment()" style="background:var(--blue);color:white;border:none;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer"><i class="ti ti-send"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CALL SCREEN (SIMULATED) -->
+  <div class="call-screen" id="call-screen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--dark1);z-index:9999;flex-direction:column">
+    <video id="call-local-video" autoplay muted playsinline style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;display:none"></video>
+    <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.8) 100%);pointer-events:none"></div>
+    
+    <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;padding-top:80px;flex:1">
+      <div class="big-av-wrap" style="width:120px;height:120px">
+        <div class="big-av" id="call-av" style="font-size:50px">😎</div>
+        <div class="big-av-ring" style="border-color:var(--green)"></div>
+      </div>
+      <div style="font-size:24px;font-weight:700;margin-top:20px;color:white" id="call-name">User Name</div>
+      <div style="font-size:14px;color:rgba(255,255,255,0.7);margin-top:8px" id="call-status">Ringing...</div>
+    </div>
+
+    <div style="position:relative;z-index:2;display:flex;justify-content:center;gap:24px;padding-bottom:60px">
+      <button onclick="toggleCallMute()" class="call-btn" id="call-mute-btn" style="width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,0.2);backdrop-filter:blur(10px);border:none;color:white;font-size:24px;cursor:pointer"><i class="ti ti-microphone"></i></button>
+      <button onclick="endCall()" class="call-btn" style="width:60px;height:60px;border-radius:50%;background:var(--red);border:none;color:white;font-size:24px;cursor:pointer;box-shadow:0 0 20px rgba(255,71,87,0.4)"><i class="ti ti-phone-x"></i></button>
+    </div>
+  </div>
+
+  <script src="env.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>

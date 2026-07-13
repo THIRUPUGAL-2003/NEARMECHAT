@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NearMe – Discover Places Around You in Real Time</title>
+  <meta name="description" content="Find restaurants, hospitals, parks, ATMs and more near your current location with NearMe. Real-time location tracking, live updates, and favorites."/>
+  <meta name="theme-color" content="#0c0e16"/>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <!-- Marker Cluster CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <!-- ═══════════════════ HEADER ═══════════════════ -->
+  <header class="header" role="banner">
+    <div class="logo">
+      <span class="logo-icon" aria-hidden="true">📍</span>
+      <span class="logo-text">Near<span class="accent">Me</span></span>
+      <span class="live-badge" id="liveBadge" title="Live tracking active">LIVE</span>
+    </div>
+
+    <div class="header-center">
+      <div class="realtime-clock" id="realtimeClock" aria-label="Current time">--:--:--</div>
+    </div>
+
+    <nav class="nav-links" aria-label="Header navigation">
+      <button id="autoRefreshBtn" class="nav-btn icon-btn" title="Toggle auto-refresh (60s)" aria-pressed="false">
+        <span aria-hidden="true">🔄</span>
+      </button>
+      <button id="themeToggleBtn" class="nav-btn icon-btn" title="Toggle dark/light mode" aria-label="Toggle theme">
+        <span aria-hidden="true">🌙</span>
+      </button>
+      <button id="myLocationBtn" class="nav-btn" aria-label="Center on my location">
+        <span aria-hidden="true">🎯</span> My Location
+      </button>
+    </nav>
+  </header>
+
+  <!-- ═══════════════════ HERO ═══════════════════ -->
+  <section class="hero" aria-label="Search area">
+    <div class="hero-bg-animation" aria-hidden="true">
+      <div class="orb orb1"></div>
+      <div class="orb orb2"></div>
+      <div class="orb orb3"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-badge" aria-hidden="true">⚡ Real-Time Location Discovery</div>
+      <h1 class="hero-title">Discover Places <br/><span class="gradient-text">Near You</span></h1>
+      <p class="hero-sub">Live tracking · Instant results · Always up to date</p>
+
+      <div class="search-bar" role="search">
+        <span class="search-icon" aria-hidden="true">🔍</span>
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Search a city, address or place…"
+          autocomplete="off"
+          aria-label="Search location"
+        />
+        <button id="searchBtn" class="btn-primary" aria-label="Search">Search</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ CATEGORIES ═══════════════════ -->
+  <section class="categories" aria-label="Place categories">
+    <div class="container">
+      <div class="cat-header">
+        <h2 class="section-title">Explore Categories</h2>
+        <button class="scroll-arrow left" id="chipScrollLeft" aria-label="Scroll left">‹</button>
+        <button class="scroll-arrow right" id="chipScrollRight" aria-label="Scroll right">›</button>
+      </div>
+      <div class="chips-wrap" id="chipsWrap" role="group" aria-label="Category selector">
+        <button class="chip active" data-type="restaurant"    aria-pressed="true" >🍽️ Restaurants</button>
+        <button class="chip" data-type="hospital"             aria-pressed="false">🏥 Hospitals</button>
+        <button class="chip" data-type="atm"                  aria-pressed="false">🏧 ATMs</button>
+        <button class="chip" data-type="park"                 aria-pressed="false">🌳 Parks</button>
+        <button class="chip" data-type="pharmacy"             aria-pressed="false">💊 Pharmacy</button>
+        <button class="chip" data-type="fuel"                 aria-pressed="false">⛽ Fuel</button>
+        <button class="chip" data-type="school"               aria-pressed="false">🏫 Schools</button>
+        <button class="chip" data-type="supermarket"          aria-pressed="false">🛒 Supermarket</button>
+        <button class="chip" data-type="cafe"                 aria-pressed="false">☕ Cafés</button>
+        <button class="chip" data-type="hotel"                aria-pressed="false">🏨 Hotels</button>
+        <button class="chip" data-type="gym"                  aria-pressed="false">🏋️ Gym</button>
+        <button class="chip" data-type="university"           aria-pressed="false">🎓 University</button>
+        <button class="chip" data-type="bus_station"          aria-pressed="false">🚌 Bus Stop</button>
+        <button class="chip" data-type="parking"              aria-pressed="false">🅿️ Parking</button>
+        <button class="chip" data-type="bank"                 aria-pressed="false">🏦 Bank</button>
+        <button class="chip" data-type="bar"                  aria-pressed="false">🍺 Bar</button>
+        <button class="chip" data-type="cinema"               aria-pressed="false">🎬 Cinema</button>
+        <button class="chip" data-type="convenience"          aria-pressed="false">🏪 Convenience</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ STATS BAR ═══════════════════ -->
+  <div class="stats-bar" id="statsBar" aria-live="polite">
+    <div class="container stats-inner">
+      <div class="stat-item">
+        <span class="stat-icon" aria-hidden="true">📌</span>
+        <span class="stat-label">Found</span>
+        <span class="stat-val" id="statFound">—</span>
+      </div>
+      <div class="stat-divider" aria-hidden="true"></div>
+      <div class="stat-item">
+        <span class="stat-icon" aria-hidden="true">📏</span>
+        <span class="stat-label">Nearest</span>
+        <span class="stat-val" id="statNearest">—</span>
+      </div>
+      <div class="stat-divider" aria-hidden="true"></div>
+      <div class="stat-item">
+        <span class="stat-icon" aria-hidden="true">🔭</span>
+        <span class="stat-label">Radius</span>
+        <span class="stat-val" id="statRadius">3 km</span>
+      </div>
+      <div class="stat-divider" aria-hidden="true"></div>
+      <div class="stat-item">
+        <span class="stat-icon" aria-hidden="true">⭐</span>
+        <span class="stat-label">Favorites</span>
+        <span class="stat-val" id="statFavs">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ FILTER BAR ═══════════════════ -->
+  <div class="filter-bar">
+    <div class="container filter-inner">
+      <!-- Radius Slider -->
+      <div class="filter-group">
+        <label for="radiusSlider" class="filter-label">
+          <span aria-hidden="true">📏</span> Radius: <strong id="radiusVal">3 km</strong>
+        </label>
+        <input
+          type="range"
+          id="radiusSlider"
+          min="500"
+          max="10000"
+          step="500"
+          value="3000"
+          aria-label="Search radius"
+          class="radius-slider"
+        />
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-group filters-group">
+        <button class="filter-chip" id="filterOpen" data-filter="open" aria-pressed="false">🟢 Open Now</button>
+        <button class="filter-chip" id="filterNamed" data-filter="named" aria-pressed="false">🏷️ Has Name</button>
+        <button class="filter-chip" id="filterAddress" data-filter="address" aria-pressed="false">🏠 Has Address</button>
+      </div>
+
+      <!-- Sort -->
+      <div class="filter-group sort-group">
+        <label for="sortSelect" class="filter-label"><span aria-hidden="true">↕️</span> Sort:</label>
+        <select id="sortSelect" aria-label="Sort results" class="sort-select">
+          <option value="distance">Distance</option>
+          <option value="name">Name A–Z</option>
+          <option value="open">Open First</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ MAP + RESULTS ═══════════════════ -->
+  <section class="map-results-section" aria-label="Map and results">
+    <div class="container split-layout">
+
+      <!-- RESULTS PANEL -->
+      <aside class="results-panel" id="resultsPanel" aria-label="Search results">
+        <div class="panel-header">
+          <h3 id="resultCount" aria-live="polite">Results</h3>
+          <div class="panel-header-actions">
+            <button class="icon-action-btn" id="fitMarkersBtn" title="Fit all markers in view" aria-label="Fit all markers">⊞</button>
+            <button class="icon-action-btn" id="clearFavsBtn" title="Clear favorites" aria-label="Clear favorites">🗑️</button>
+          </div>
+        </div>
+
+        <div id="resultsList" class="results-list" role="list" aria-label="Nearby places">
+          <div class="empty-state">
+            <div class="empty-icon" aria-hidden="true">🗺️</div>
+            <p>Allow location access &amp; pick a category to see nearby places.</p>
+          </div>
+        </div>
+      </aside>
+
+      <!-- MAP -->
+      <div class="map-wrap" aria-label="Interactive map">
+        <div id="map" role="application" aria-label="Map showing nearby places"></div>
+        <div class="map-overlay-badge" id="locationBadge" aria-live="polite">📍 Locating…</div>
+        <div class="map-controls">
+          <button class="map-ctrl-btn" id="fitAllBtn" title="Fit all markers" aria-label="Fit all markers">⊞</button>
+          <button class="map-ctrl-btn" id="centerUserBtn" title="Center on me" aria-label="Center on my location">🎯</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════ PLACE DETAIL DRAWER ═══════════════════ -->
+  <div id="detailDrawer" class="detail-drawer" role="dialog" aria-modal="true" aria-label="Place details" aria-hidden="true">
+    <div class="drawer-backdrop" id="drawerBackdrop"></div>
+    <div class="drawer-panel">
+      <div class="drawer-header">
+        <div class="drawer-icon" id="drawerIcon" aria-hidden="true">📍</div>
+        <div class="drawer-title-wrap">
+          <h2 class="drawer-title" id="drawerTitle">Place Name</h2>
+          <p class="drawer-type" id="drawerType">Category</p>
+        </div>
+        <button class="drawer-close" id="drawerClose" aria-label="Close details">✕</button>
+      </div>
+      <div class="drawer-body" id="drawerBody">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ TOAST ═══════════════════ -->
+  <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
+
+  <!-- ═══════════════════ LOADING OVERLAY ═══════════════════ -->
+  <div id="loadingOverlay" class="loading-overlay hidden" aria-label="Loading" aria-live="polite">
+    <div class="spinner-ring"><div></div><div></div><div></div><div></div></div>
+    <p>Finding places near you…</p>
+  </div>
+
+  <!-- ═══════════════════ FOOTER ═══════════════════ -->
+  <footer class="footer" role="contentinfo">
+    <p>Powered by <strong>OpenStreetMap</strong> &amp; <strong>Overpass API</strong> · Real-time tracking · Built with ❤️</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
