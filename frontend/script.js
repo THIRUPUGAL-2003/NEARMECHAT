@@ -610,6 +610,7 @@ async function openChat(i) {
   const main = document.getElementById('chat-main');
   main.innerHTML = `
     <div class="chat-topbar">
+      <button class="icon-btn mobile-back-btn" onclick="backToChatList()" style="margin-right:8px; display:none"><i class="ti ti-arrow-left"></i></button>
       <div style="width:38px;height:38px;border-radius:50%;font-size:17px;display:flex;align-items:center;justify-content:center;background:var(--dark4);position:relative;flex-shrink:0;overflow:hidden">
         ${person?.photoUrl ? `<img src="${person.photoUrl}" style="width:100%;height:100%;object-fit:cover">` : `${c.emoji}`}
         <div style="position:absolute;bottom:1px;right:1px;width:9px;height:9px;border-radius:50%;background:${c.online ? 'var(--green)' : '#444'};border:2px solid var(--dark2)"></div>
@@ -646,6 +647,11 @@ async function openChat(i) {
     </div>`;
   setTimeout(() => { const m = document.getElementById('msgs'); if (m) m.scrollTop = 99999 }, 50);
   document.addEventListener('click', closeAttachMenuOutside);
+
+  const listPanel = document.getElementById('chat-list-panel');
+  const chatMain = document.getElementById('chat-main');
+  if (listPanel) listPanel.classList.add('hide-mobile');
+  if (chatMain) chatMain.classList.add('active');
 }
 function toggleAttachMenu(){const m=document.getElementById('attach-menu');if(m)m.classList.toggle('show')}
 function closeAttachMenuOutside(e){const btn=document.getElementById('attach-btn');const menu=document.getElementById('attach-menu');if(menu&&!btn?.contains(e.target)){menu.classList.remove('show')}}
@@ -1085,6 +1091,30 @@ function showPage(name){
   if(name==='nearby')setTimeout(initLeafletMap,80);
   if(name==='feed'){buildFeed();document.getElementById('feed-badge').style.display='none'}
   if(name==='admin')loadAdminData();
+
+  if (name === 'chats') {
+    const listPanel = document.getElementById('chat-list-panel');
+    const chatMain = document.getElementById('chat-main');
+    if (currentChatIdx !== null && currentChatIdx !== undefined) {
+      if (listPanel) listPanel.classList.add('hide-mobile');
+      if (chatMain) chatMain.classList.add('active');
+    } else {
+      if (listPanel) listPanel.classList.remove('hide-mobile');
+      if (chatMain) chatMain.classList.remove('active');
+    }
+  }
+}
+
+function backToChatList() {
+  currentChatIdx = null;
+  const listPanel = document.getElementById('chat-list-panel');
+  const chatMain = document.getElementById('chat-main');
+  if (listPanel) listPanel.classList.remove('hide-mobile');
+  if (chatMain) {
+    chatMain.classList.remove('active');
+    chatMain.innerHTML = `<div class="chat-empty"><i class="ti ti-messages"></i><p>Select a conversation</p></div>`;
+  }
+  buildChats();
 }
 function filterCards(q){const f=q.toLowerCase().trim();if(!f){buildCards(filterByKey((document.querySelector('.chip.on')||{dataset:{key:'all'}}).dataset.key));return}buildCards(people.filter(p=>p.name.toLowerCase().includes(f)||p.interests.some(i=>i.toLowerCase().includes(f))||p.bio?.toLowerCase().includes(f)))}
 function toggleChip(el,key){document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');document.getElementById('search-input').value='';buildCards(filterByKey(key))}

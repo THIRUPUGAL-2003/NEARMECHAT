@@ -439,15 +439,25 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
   .mob-btn i{font-size:20px}
   .mob-btn.active{color:var(--pink)}
   .nearby-layout{grid-template-columns:1fr}
-  .map-panel{height:240px}
-  .chats-layout{grid-template-columns:1fr}
-  .chat-list-panel{display:none}
-  .chat-list-panel.show{display:flex}
+  .map-panel{height:40vh !important}
+  .chats-layout{grid-template-columns:1fr;display:block;height:100%}
+  .chat-list-panel{display:flex;width:100% !important}
+  .chat-list-panel.hide-mobile{display:none !important}
+  .chat-main{display:none;width:100% !important;height:100%}
+  .chat-main.active{display:flex !important}
+  .mobile-back-btn{display:flex !important}
   .cards-grid{grid-template-columns:repeat(auto-fill,minmax(145px,1fr));padding:10px 12px}
   .activity-panel{display:none}
   .main{padding-bottom:58px}
   .post-modal{width:calc(100vw - 32px)}
   .modal{width:calc(100vw - 32px)}
+}
+@media(max-width:600px){
+  .topbar-left .live-badge { display: none !important; }
+  .search-wrap { width: 110px !important; padding: 0 6px !important; }
+  .icon-btn { width: 30px !important; height: 30px !important; font-size: 13px !important; }
+  .topbar { padding: 8px 12px !important; }
+  .topbar-title { font-size: 15px !important; }
 }
 .empty-state{padding:48px;text-align:center;color:var(--muted)}
 .empty-state i{font-size:42px;opacity:.18;display:block;margin-bottom:10px}
