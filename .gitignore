@@ -1,19 +1,20 @@
-# Ignore environment secrets in any directory
-**/.env
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
 
-# Ignore python caches and virtual environments
-**/__pycache__/
-**/*.pyc
-**/*.pyo
-**/*.pyd
-**/.venv/
-**/venv/
+# Environment secrets — NEVER commit these
+backend/.env
+frontend/.env
 
-# Ignore uploads and local temp files
-**/uploads/
-**/.DS_Store
-Thumps.db
+# Uploads (ephemeral on Render)
+backend/uploads/
 
-# Ignore node packages
-**/node_modules/
+# Node
+node_modules/
 package-lock.json
