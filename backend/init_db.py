@@ -62,8 +62,17 @@ async def init_db():
                 id SERIAL PRIMARY KEY,
                 post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
                 user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                content TEXT,
+                text TEXT,
                 created_at TIMESTAMP DEFAULT NOW()
+            );
+
+            CREATE TABLE IF NOT EXISTS user_likes (
+                id SERIAL PRIMARY KEY,
+                liker_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                liked_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                is_like BOOLEAN NOT NULL,
+                created_at TIMESTAMP DEFAULT NOW(),
+                UNIQUE (liker_id, liked_id)
             );
 
             CREATE TABLE IF NOT EXISTS stories (

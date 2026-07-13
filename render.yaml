@@ -1,7 +1,4 @@
 services:
-  # ─────────────────────────────────────────────────────────
-  # 1. BACKEND  →  FastAPI Web Service
-  # ─────────────────────────────────────────────────────────
   - type: web
     name: nearme-backend
     runtime: python
@@ -11,15 +8,21 @@ services:
     plan: free
 
     envVars:
-      # ⚠️  DO NOT hard-code secrets here.
-      # Set these in the Render dashboard → Environment tab.
       - key: DATABASE_URL
-        sync: false          # prompt in dashboard
+        sync: false
       - key: SECRET_KEY
         sync: false
       - key: ALGORITHM
         value: HS256
       - key: UPLOAD_DIR
-        value: /tmp/uploads  # Render disk is ephemeral; use /tmp
+        value: /tmp/uploads
 
+  - type: static
+    name: nearme-frontend
+    rootDir: frontend
+    staticPublishPath: .
 
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache

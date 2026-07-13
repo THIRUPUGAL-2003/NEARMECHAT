@@ -651,20 +651,70 @@ function toggleAttachMenu(){const m=document.getElementById('attach-menu');if(m)
 function closeAttachMenuOutside(e){const btn=document.getElementById('attach-btn');const menu=document.getElementById('attach-menu');if(menu&&!btn?.contains(e.target)){menu.classList.remove('show')}}
 function triggerChatMedia(accept){const inp=document.getElementById('chat-media-input');if(inp){inp.accept=accept;inp.click()}}
 function onChatMediaChange(input,chatIdx){
-  const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    const now=new Date();const t=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    const isVideo=file.type.startsWith('video');const isImage=file.type.startsWith('image');
-    const size=file.size>1024*1024?`${(file.size/1024/1024).toFixed(1)}MB`:`${Math.round(file.size/1024)}KB`;
-    let msg;
-    if(isImage)msg={me:true,type:'image',src:e.target.result,time:t};
-    else if(isVideo)msg={me:true,type:'video',src:e.target.result,time:t};
-    else msg={me:true,type:'file',filename:file.name,filesize:size,time:t};
-    chatsData[chatIdx].msgs.push(msg);chatsData[chatIdx].preview=isImage?'📷 Photo':isVideo?'🎬 Video':`📄 ${file.name}`;chatsData[chatIdx].time='now';
-    openChat(chatIdx);buildChats();
-    toast(`${isImage?'📷':isVideo?'🎬':'📄'} Sent!`);
-  };reader.readAsDataURL(file);
+  const file = input.files[0];
+  if (!file) return;
+  
+  const token = localStorage.getItem('token');
+  const chat = chatsData[chatIdx];
+  
+  const formData = new FormData();
+  formData.append('token', token);
+  formData.append('file', file);
+  
+  toast('📤 Uploading attachment...');
+  fetch(`${API_URL}/api/messages/upload`, {
+    method: 'POST',
+    body: formData
+  })
+  .then(res => {
+    if (!res.ok) throw new Error('Upload failed');
+    return res.json();
+  })
+  .then(result => {
+    if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+      chatSocket.send(JSON.stringify({
+        type: "chat",
+        to: chat.other_id,
+        message: "",
+        media_url: result.media_url,
+        media_type: result.media_type
+      }));
+      
+      const now = new Date();
+      const t = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      
+      let msgType = "file";
+      if (result.media_type === "photo") msgType = "image";
+      else if (result.media_type === "video") msgType = "video";
+      else if (result.media_type === "voice") msgType = "voice";
+      
+      const fullMediaUrl = result.media_url.startsWith('/uploads') ? API_URL + result.media_url : result.media_url;
+      
+      const msg = {
+        me: true,
+        type: msgType,
+        src: fullMediaUrl,
+        audioUrl: msgType === 'voice' ? fullMediaUrl : null,
+        filename: file.name,
+        filesize: file.size > 1024 * 1024 ? `${(file.size / 1024 / 1024).toFixed(1)}MB` : `${Math.round(file.size / 1024)}KB`,
+        time: t
+      };
+      
+      chat.msgs.push(msg);
+      chat.preview = result.media_type === "photo" ? "📷 Photo" : result.media_type === "video" ? "🎬 Video" : `📄 ${file.name}`;
+      chat.time = "now";
+      
+      openChat(chatIdx);
+      buildChats();
+      toast('✅ Attachment sent!');
+    } else {
+      toast('🔴 WebSocket offline, cannot send');
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    toast('❌ Attachment upload failed');
+  });
 }
 function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px'}
 function toggleAIInChat(){aiEnabled=!aiEnabled;const btn=document.getElementById('chat-ai-btn');if(btn){btn.classList.toggle('on',aiEnabled);btn.innerHTML=`<i class="ti ti-sparkles"></i>${aiEnabled?'<div class="ai-dot">AI</div>':''}`}toast(aiEnabled?'🤖 AI replies ON':'🔴 AI replies OFF')}
@@ -683,8 +733,7 @@ async function startRecording(chatIdx){
     mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);
     mediaRecorder.onstop=()=>{
       const blob=new Blob(audioChunks,{type:'audio/webm'});
-      const url=URL.createObjectURL(blob);
-      sendVoiceNoteMsg(chatIdx,url,recordingDuration);
+      sendVoiceNoteMsg(chatIdx,blob,recordingDuration);
       recStream.getTracks().forEach(t=>t.stop());
     };
     mediaRecorder.start();isRecording=true;recordingDuration=0;
@@ -707,11 +756,63 @@ function stopRecording(chatIdx,simulated=false){
   if(simulated||!mediaRecorder){sendVoiceNoteMsg(chatIdx,null,recordingDuration||2)}
   else if(mediaRecorder&&mediaRecorder.state!=='inactive'){mediaRecorder.stop()}
 }
-function sendVoiceNoteMsg(chatIdx,url,dur){
-  const now=new Date();const t=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  const msg={me:true,type:'voice',audioUrl:url,duration:Math.max(1,dur),time:t};
-  chatsData[chatIdx].msgs.push(msg);chatsData[chatIdx].preview='🎙️ Voice note';chatsData[chatIdx].time='now';
-  openChat(chatIdx);buildChats();toast('🎙️ Voice note sent!');
+async function sendVoiceNoteMsg(chatIdx,blob,dur){
+  const token = localStorage.getItem('token');
+  const chat = chatsData[chatIdx];
+  
+  let targetBlob = blob;
+  if (!targetBlob) {
+    targetBlob = new Blob([new Uint8Array(100)], { type: 'audio/webm' });
+  }
+  
+  const file = new File([targetBlob], `voice_${Date.now()}.webm`, { type: 'audio/webm' });
+  const formData = new FormData();
+  formData.append('token', token);
+  formData.append('file', file);
+  
+  toast('📤 Uploading voice note...');
+  try {
+    const res = await fetch(`${API_URL}/api/messages/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    if (!res.ok) throw new Error('Voice note upload failed');
+    const result = await res.json();
+    
+    if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+      chatSocket.send(JSON.stringify({
+        type: "chat",
+        to: chat.other_id,
+        message: "",
+        media_url: result.media_url,
+        media_type: "voice",
+        voice_duration: dur
+      }));
+      
+      const now = new Date();
+      const t = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const fullMediaUrl = result.media_url.startsWith('/uploads') ? API_URL + result.media_url : result.media_url;
+      
+      chat.msgs.push({
+        me: true,
+        type: 'voice',
+        audioUrl: fullMediaUrl,
+        duration: Math.max(1, dur),
+        time: t
+      });
+      chat.preview = '🎙️ Voice note';
+      chat.time = 'now';
+      
+      openChat(chatIdx);
+      buildChats();
+      toast('🎙️ Voice note sent!');
+    } else {
+      toast('🔴 WebSocket offline, cannot send');
+    }
+  } catch (err) {
+    console.error(err);
+    toast('❌ Voice note upload failed');
+  }
 }
 function showRecordingUI(){
   const area=document.getElementById('chat-input-area');if(!area)return;
@@ -766,6 +867,87 @@ async function sendMsg(i) {
   }
   
   buildChats();
+
+  // If it's a mock user, trigger simulated typing indicator and AI response
+  const isMockUser = [1, 2, 3, 4, 5, 6].includes(chat.other_id) || ['Sarah', 'Jason', 'Priya', 'Vikram', 'Divya'].includes(chat.name);
+  if (isMockUser && aiEnabled) {
+    const person = people.find(p => p.id === chat.other_id) || {
+      name: chat.name,
+      emoji: chat.emoji || '👤',
+      age: 22,
+      interests: ['🎵 Music', '🍕 Food'],
+      bio: 'Living life near you'
+    };
+    
+    setTimeout(() => {
+      // Show typing indicator
+      const currentMsgsArea = document.getElementById('msgs');
+      if (currentMsgsArea && currentChatIdx === i) {
+        const typingDiv = document.createElement('div');
+        typingDiv.id = 'typing-indicator';
+        typingDiv.className = 'msg-wrap';
+        typingDiv.style.alignSelf = 'flex-start';
+        typingDiv.style.marginBottom = '10px';
+        typingDiv.innerHTML = `
+          <div class="msg them" style="display:flex;gap:4px;align-items:center;padding:10px 14px;border-radius:16px;">
+            <span class="typing-dot" style="width:6px;height:6px;background:var(--muted2);border-radius:50%;display:inline-block;animation:blink-dot 1.4s infinite"></span>
+            <span class="typing-dot" style="width:6px;height:6px;background:var(--muted2);border-radius:50%;display:inline-block;animation:blink-dot 1.4s infinite .2s"></span>
+            <span class="typing-dot" style="width:6px;height:6px;background:var(--muted2);border-radius:50%;display:inline-block;animation:blink-dot 1.4s infinite .4s"></span>
+          </div>
+        `;
+        
+        if (!document.getElementById('typing-style')) {
+          const s = document.createElement('style');
+          s.id = 'typing-style';
+          s.textContent = '@keyframes blink-dot{0%,100%{opacity:.2}50%{opacity:1}}';
+          document.head.appendChild(s);
+        }
+        
+        currentMsgsArea.appendChild(typingDiv);
+        currentMsgsArea.scrollTop = currentMsgsArea.scrollHeight;
+      }
+      
+      // Get AI reply
+      setTimeout(async () => {
+        // Remove typing indicator
+        const typingDiv = document.getElementById('typing-indicator');
+        if (typingDiv) typingDiv.remove();
+        
+        const history = chat.msgs.map(m => ({
+          role: m.me ? 'user' : 'assistant',
+          content: m.text || ''
+        }));
+        
+        const replyText = await getAIReply(person, history, txt);
+        const replyTime = new Date();
+        const replyT = `${String(replyTime.getHours()).padStart(2, '0')}:${String(replyTime.getMinutes()).padStart(2, '0')}`;
+        
+        // Add reply to state
+        chat.msgs.push({ me: false, text: replyText, time: replyT, ai: true });
+        chat.preview = replyText;
+        chat.time = 'now';
+        
+        // If still viewing this chat, render it
+        if (currentChatIdx === i) {
+          const msgsArea2 = document.getElementById('msgs');
+          if (msgsArea2) {
+            const wrap = document.createElement('div');
+            wrap.className = 'msg-wrap';
+            wrap.innerHTML = `${renderMsgHtml({ me: false, text: replyText, ai: true })}<div class="msg-time left">${replyT}</div>`;
+            msgsArea2.appendChild(wrap);
+            msgsArea2.scrollTop = msgsArea2.scrollHeight;
+          }
+          // Silent API call to mark read
+          fetch(`${API_URL}/api/messages?token=${localStorage.getItem('token')}&other_user_id=${chat.other_id}`);
+        } else {
+          chat.unread = (chat.unread || 0) + 1;
+          showNotif(chat.emoji || '👤', chat.name, replyText, person.photoUrl);
+        }
+        buildChats();
+        updateBadge();
+      }, 1500);
+    }, 600);
+  }
 }
 function openChatWith(name) {
   showPage('chats');
@@ -2286,6 +2468,7 @@ async function openCommentsModal(postId) {
   
   list.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted)">Loading comments...</div>`;
   
+  const token = localStorage.getItem('token');
   try {
     const res = await fetch(`${API_URL}/api/posts/${postId}/comments?token=${token}`);
     if(!res.ok) throw new Error('Failed to load');
@@ -2324,6 +2507,7 @@ async function submitComment() {
   if(!text || !currentCommentPostId) return;
   
   inp.value = '';
+  const token = localStorage.getItem('token');
   
   try {
     const res = await fetch(`${API_URL}/api/posts/${currentCommentPostId}/comments?token=${token}`, { 
@@ -2333,7 +2517,7 @@ async function submitComment() {
     });
     if(res.ok) {
       openCommentsModal(currentCommentPostId); // reload
-      fetchFeed(); // Refresh the feed silently to update counts
+      loadFeed(); // Refresh the feed silently to update counts
     } else {
       toast('❌ Failed to post comment');
     }
@@ -2418,6 +2602,7 @@ function endCall() {
 // --- ACCOUNT ACTIONS ---
 async function exportData() {
   toast('⏳ Preparing data export...');
+  const token = localStorage.getItem('token');
   try {
     const res = await fetch(`${API_URL}/api/users/me/export?token=${token}`);
     if(res.ok) {
@@ -2441,6 +2626,7 @@ async function exportData() {
 async function deactivateAccount() {
   if(!confirm("⚠️ WARNING: This will PERMANENTLY delete your account, posts, messages, and all data. Are you sure?")) return;
   
+  const token = localStorage.getItem('token');
   try {
     const res = await fetch(`${API_URL}/api/users/me?token=${token}`, { method: 'DELETE' });
     if(res.ok) {

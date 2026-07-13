@@ -41,6 +41,40 @@ app.add_middleware(
 )
 
 # ==================================================
+# FILE UPLOAD HELPER (CLOUDINARY / LOCAL FALLBACK)
+# ==================================================
+
+async def upload_file_helper(file: Optional[UploadFile], folder: str) -> str:
+    if not file or not file.filename:
+        return ""
+    
+    # Try Cloudinary first
+    cloudinary_url = os.getenv("CLOUDINARY_URL")
+    if cloudinary_url and not cloudinary_url.startswith("cloudinary://your_"):
+        try:
+            file.file.seek(0)
+            result = cloudinary.uploader.upload(file.file, folder=folder, resource_type="auto")
+            secure_url = result.get("secure_url")
+            if secure_url:
+                return secure_url
+        except Exception as e:
+            print(f"[WARN] Cloudinary upload failed, falling back to local storage: {e}")
+            
+    # Fallback to local storage
+    try:
+        file.file.seek(0)
+        import uuid
+        ext = os.path.splitext(file.filename)[1]
+        filename = f"{uuid.uuid4()}{ext}"
+        filepath = os.path.join(UPLOAD_DIR, filename)
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        return f"/uploads/{filename}"
+    except Exception as e:
+        print(f"[ERROR] Local upload failed: {e}")
+        raise HTTPException(status_code=500, detail=f"File upload failed: {e}")
+
+# ==================================================
 # DATABASE
 # ==================================================
 
@@ -51,6 +85,124 @@ async def startup():
     global db_pool
     db_pool = await asyncpg.create_pool(DATABASE_URL)
     print("[OK] Connected to PostgreSQL")
+    
+    # Initialize schemas
+    async with db_pool.acquire() as conn:
+        print("[OK] Initializing Database Schema...")
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR NOT NULL,
+                email VARCHAR UNIQUE NOT NULL,
+                password_hash VARCHAR NOT NULL,
+                location VARCHAR,
+                bio TEXT,
+                lat DOUBLE PRECISION,
+                lng DOUBLE PRECISION,
+                is_online BOOLEAN DEFAULT FALSE,
+                profile_pic VARCHAR,
+                is_blocked BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+
+            CREATE TABLE IF NOT EXISTS messages (
+                id SERIAL PRIMARY KEY,
+                sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                receiver_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                message_text TEXT,
+                media_url VARCHAR,
+                media_type VARCHAR,
+                voice_duration INTEGER DEFAULT 0,
+                is_read BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+
+            CREATE TABLE IF NOT EXISTS posts (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                caption TEXT,
+                media_url VARCHAR,
+                media_type VARCHAR,
+                likes_count INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+
+            CREATE TABLE IF NOT EXISTS post_likes (
+                id SERIAL PRIMARY KEY,
+                post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                created_at TIMESTAMP DEFAULT NOW(),
+                UNIQUE (post_id, user_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS comments (
+                id SERIAL PRIMARY KEY,
+                post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                text TEXT,
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+
+            CREATE TABLE IF NOT EXISTS user_likes (
+                id SERIAL PRIMARY KEY,
+                liker_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                liked_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                is_like BOOLEAN NOT NULL,
+                created_at TIMESTAMP DEFAULT NOW(),
+                UNIQUE (liker_id, liked_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS stories (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                text TEXT,
+                bg_color VARCHAR,
+                media_url VARCHAR,
+                media_type VARCHAR,
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+
+            CREATE TABLE IF NOT EXISTS follows (
+                id SERIAL PRIMARY KEY,
+                follower_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                followed_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                created_at TIMESTAMP DEFAULT NOW(),
+                UNIQUE (follower_id, followed_id)
+            );
+        ''')
+        
+        # Migration: comments content -> text rename
+        try:
+            cols = await conn.fetch("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'comments' AND column_name = 'content'
+            """)
+            if cols:
+                await conn.execute("ALTER TABLE comments RENAME COLUMN content TO text")
+                print("[MIGRATION] Renamed comments.content to comments.text")
+        except Exception as e:
+            print(f"[MIGRATION] Renaming comments table column warning: {e}")
+            
+        # Seed mock users if empty
+        users_count = await conn.fetchval("SELECT COUNT(*) FROM users")
+        if users_count == 0:
+            print("[SEED] Seeding mock users...")
+            hashed_pwd = bcrypt.hashpw("pass123".encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+            mock_users = [
+                ("Sarah", "sarah@gmail.com", hashed_pwd, "Adyar, Chennai", "Travel blogger and food lover. Let's find some cafe nearby!", 13.0900, 80.2600, True, "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=300&q=80&fit=crop"),
+                ("Jason", "jason@gmail.com", hashed_pwd, "T-Nagar, Chennai", "Gym enthusiast and techie. Looking for gym partners and networking.", 13.0650, 80.2750, True, "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&q=80&fit=crop"),
+                ("Priya", "priya@gmail.com", hashed_pwd, "Anna Nagar, Chennai", "Classical singer. Love coffee and conversation.", 13.0850, 80.2800, True, "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&q=80&fit=crop"),
+                ("Vikram", "vikram@gmail.com", hashed_pwd, "Velachery, Chennai", "Bike rider. Always ready for a highway ride.", 13.0720, 80.2550, False, "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&q=80&fit=crop"),
+                ("Divya", "divya@gmail.com", hashed_pwd, "Nungambakkam, Chennai", "Artist & Painter. Working on dynamic design aesthetics.", 13.0780, 80.2900, True, "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80&fit=crop"),
+                ("Super Admin", "pugal@gmail.com", hashed_pwd, "Chennai", "Site administrator.", 13.0827, 80.2707, True, "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&q=80&fit=crop")
+            ]
+            for name, email, pw, loc, bio, lat, lng, online, pic in mock_users:
+                await conn.execute("""
+                    INSERT INTO users (name, email, password_hash, location, bio, lat, lng, is_online, profile_pic)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                """, name, email, pw, loc, bio, lat, lng, online, pic)
+            print("[SEED] Done seeding mock users.")
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -161,10 +313,7 @@ async def signup(
 
         password_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
-        file_url = ""
-        if profile_pic and profile_pic.filename:
-            result = cloudinary.uploader.upload(profile_pic.file, folder="nearme/profiles")
-            file_url = result.get("secure_url")
+        file_url = await upload_file_helper(profile_pic, "nearme/profiles")
 
         user = await conn.fetchrow(
             """
@@ -239,8 +388,7 @@ async def update_profile(
 
         file_url = user["profile_pic"]
         if profile_pic and profile_pic.filename:
-            result = cloudinary.uploader.upload(profile_pic.file, folder="nearme/profiles")
-            file_url = result.get("secure_url")
+            file_url = await upload_file_helper(profile_pic, "nearme/profiles")
 
         await conn.execute(
             """
@@ -341,8 +489,8 @@ async def update_location(req: LocationUpdate):
 # NEARBY USERS (LOCATION BASED FILTERING)
 # ==================================================
 
-@app.get("/api")
-async def api_home():
+@app.get("/")
+async def home():
     return {
         "message": "NearMe API is running",
         "docs": "/docs"
@@ -454,10 +602,7 @@ async def create_post(
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    media_url = ""
-    if file and file.filename:
-        result = cloudinary.uploader.upload(file.file, folder="nearme/posts", resource_type="auto")
-        media_url = result.get("secure_url")
+    media_url = await upload_file_helper(file, "nearme/posts")
 
     async with db_pool.acquire() as conn:
         post = await conn.fetchrow(
@@ -534,10 +679,7 @@ async def create_story(
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    media_url = ""
-    if file and file.filename:
-        result = cloudinary.uploader.upload(file.file, folder="nearme/stories", resource_type="auto")
-        media_url = result.get("secure_url")
+    media_url = await upload_file_helper(file, "nearme/stories")
 
     async with db_pool.acquire() as conn:
         story = await conn.fetchrow(
@@ -880,7 +1022,7 @@ async def get_followers(target_id: int):
     async with db_pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            SELECT u.id, u.name, u.photo_url, u.profile_pic, u.is_online, u.bio, u.location
+            SELECT u.id, u.name, u.profile_pic, u.is_online, u.bio, u.location
             FROM follows f
             JOIN users u ON u.id = f.follower_id
             WHERE f.followed_id = $1
@@ -892,7 +1034,7 @@ async def get_followers(target_id: int):
         {
             "id": r["id"],
             "name": r["name"],
-            "photo_url": r["profile_pic"] or r["photo_url"] or "",
+            "photo_url": r["profile_pic"] or "",
             "is_online": r["is_online"],
             "bio": r["bio"] or "",
             "location": r["location"] or ""
@@ -906,7 +1048,7 @@ async def get_following(target_id: int):
     async with db_pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            SELECT u.id, u.name, u.photo_url, u.profile_pic, u.is_online, u.bio, u.location
+            SELECT u.id, u.name, u.profile_pic, u.is_online, u.bio, u.location
             FROM follows f
             JOIN users u ON u.id = f.followed_id
             WHERE f.follower_id = $1
@@ -918,7 +1060,7 @@ async def get_following(target_id: int):
         {
             "id": r["id"],
             "name": r["name"],
-            "photo_url": r["profile_pic"] or r["photo_url"] or "",
+            "photo_url": r["profile_pic"] or "",
             "is_online": r["is_online"],
             "bio": r["bio"] or "",
             "location": r["location"] or ""
@@ -1165,7 +1307,7 @@ async def admin_get_comments(token: str):
     async with db_pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            SELECT c.id, c.post_id, c.user_id, c.comment_text, c.created_at,
+            SELECT c.id, c.post_id, c.user_id, c.text AS comment_text, c.created_at,
                    u.name AS author_name, u.email AS author_email,
                    p.caption AS post_caption
             FROM comments c
@@ -1177,6 +1319,29 @@ async def admin_get_comments(token: str):
     return {"comments": [dict(r) for r in rows]}
 
 
+@app.post("/api/messages/upload")
+async def upload_message_media(
+    token: str = Form(...),
+    file: UploadFile = File(...)
+):
+    user_id = decode_token(token)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token")
+        
+    media_url = await upload_file_helper(file, "nearme/chat")
+    media_type = "file"
+    content_type = file.content_type or ""
+    if content_type.startswith("image/"):
+        media_type = "photo"
+    elif content_type.startswith("video/"):
+        media_type = "video"
+    elif content_type.startswith("audio/"):
+        media_type = "voice"
+        
+    return {
+        "media_url": media_url,
+        "media_type": media_type
+    }
 
 
 # ==================================================
@@ -1188,11 +1353,3 @@ app.mount(
     StaticFiles(directory=UPLOAD_DIR),
     name="uploads"
 )
-
-# Mount frontend static files at root
-app.mount(
-    "/",
-    StaticFiles(directory=os.path.join(os.path.dirname(__file__), "..", "frontend"), html=True),
-    name="frontend"
-)
-
