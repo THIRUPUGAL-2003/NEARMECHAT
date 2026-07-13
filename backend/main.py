@@ -341,8 +341,8 @@ async def update_location(req: LocationUpdate):
 # NEARBY USERS (LOCATION BASED FILTERING)
 # ==================================================
 
-@app.get("/")
-async def home():
+@app.get("/api")
+async def api_home():
     return {
         "message": "NearMe API is running",
         "docs": "/docs"
@@ -1189,12 +1189,10 @@ app.mount(
     name="uploads"
 )
 
-# Serve Frontend static site directly from Backend
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend"))
-if os.path.exists(FRONTEND_DIR):
-    app.mount(
-        "/",
-        StaticFiles(directory=FRONTEND_DIR, html=True),
-        name="frontend"
-    )
+# Mount frontend static files at root
+app.mount(
+    "/",
+    StaticFiles(directory=os.path.join(os.path.dirname(__file__), "..", "frontend"), html=True),
+    name="frontend"
+)
+

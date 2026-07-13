@@ -22,17 +22,4 @@ services:
       - key: UPLOAD_DIR
         value: /tmp/uploads  # Render disk is ephemeral; use /tmp
 
-  # ─────────────────────────────────────────────────────────
-  # 2. FRONTEND  →  Static Site
-  # ─────────────────────────────────────────────────────────
-  - type: web
-    name: nearme-frontend
-    runtime: static
-    rootDir: frontend
-    staticPublishPath: .      # serve the frontend/ folder as-is
-    plan: free
 
-    headers:
-      - path: /*
-        name: Cache-Control
-        value: no-cache
